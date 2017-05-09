@@ -1,0 +1,42 @@
+version: "2"
+
+services:
+  kong-database:
+    image: orangesys/alpine-postgres:9.5.4 # onjin/alpine-postgres:9.5.6
+    network_mode: bridge
+    container_name: kong-database
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=kong
+      - POSTGRES_DB=kong
+      - PGDATA=/var/lib/postgresql/kong
+
+  kong:
+    build: .
+    network_mode: bridge
+    container_name: kong
+    ports:
+      - "80:8000"
+      - "443:8443"
+      - "8001:8001"
+    environment:
+      - KONG_DATABASE=postgres
+      - KONG_PG_HOST=kong-database
+      # - KONG_LOG_LEVEL=debug
+      # - KONG_CUSTOM_PLUGINS=letsencrypt
+      # - KONG_ANONYMOUS_REPORTS=off
+      - KONG_ADMIN_SSL=off
+      # - KONG_LUA_CODE_CACHE=off
+      # - KONG_SSL=on
+    command: kong start --nginx-conf /conf/nginx.template
+    volumes:
+      - "./conf:/conf"
+      - "./:/usr/local/share/lua/5.1/kong/plugins/letsencrypt"
+    links:
+      - kong-database
+
+networks:
+  default:
+    external:
+      name: bridge
